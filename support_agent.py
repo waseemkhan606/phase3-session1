@@ -6,8 +6,8 @@ Builds the foundational LangGraph skeleton: SupportState schema,
 Gemini-powered classifier, conditional router, and 4 handler stubs.
 All subsequent sessions extend this file without removing anything.
 
-Run backend:  python support_agent.py
-Run UI:       streamlit run ui.py
+Run backend:  python api.py
+Run UI:       open http://localhost:8000 after starting the backend
 """
 
 import os
