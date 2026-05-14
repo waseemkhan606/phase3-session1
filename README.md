@@ -50,8 +50,7 @@ The graph is built with **LangGraph's StateGraph**, compiled once at module load
 pythonProject1/
 ├── support_agent.py   # Core: LangGraph graph, state, classifier, router, handlers
 ├── api.py             # FastAPI backend — REST + Server-Sent Events streaming
-├── ui.py              # Streamlit frontend — interactive ticket submission + inspector
-├── index.html         # Standalone HTML/JS frontend (served by FastAPI on port 8000)
+├── index.html         # HTML/JS frontend (served by FastAPI on port 8000)
 ├── requirements.txt   # Python dependencies
 ├── .env               # API keys (never committed)
 └── .gitignore
@@ -107,7 +106,7 @@ Four handlers, each returning a `final_response` string. In Session 1 these are 
 
 ### 5. Streaming
 
-`stream_ticket()` uses LangGraph's `.stream()` API to yield `(node_name, snapshot)` tuples as each node completes. Both the Streamlit UI and the HTML frontend use this for live step-by-step display.
+`stream_ticket()` uses LangGraph's `.stream()` API to yield `(node_name, snapshot)` tuples as each node completes. The HTML frontend consumes these via Server-Sent Events for live step-by-step display.
 
 ---
 
@@ -151,32 +150,22 @@ GOOGLE_API_KEY=your_google_api_key_here
 
 ## Running the Project
 
-You have three ways to run the platform. Choose one:
+You have two ways to run the platform. Choose one:
 
-### Option A — Streamlit UI (recommended for development)
-
-```bash
-streamlit run ui.py
-```
-
-Opens at `http://localhost:8501`. Includes:
-- Sample ticket buttons (Technical / Billing / Fraud / General)
-- Live streaming execution trace
-- Execution Inspector with state snapshot
-- Session verification test panel
-
-### Option B — HTML frontend via FastAPI
+### Option A — HTML frontend via FastAPI (recommended)
 
 ```bash
 python api.py
 ```
 
-Opens at `http://localhost:8000`. Serves the polished `index.html` frontend with:
+Opens at `http://localhost:8000`. Serves the `index.html` frontend with:
 - Dark-themed, glassmorphism UI
+- Sample ticket pills (Technical / Billing / Fraud / General)
 - SSE-based live streaming execution trace
-- Built-in verification panel
+- Execution Inspector with state snapshot
+- Built-in session verification panel
 
-### Option C — CLI test harness
+### Option B — CLI test harness
 
 ```bash
 python support_agent.py
@@ -215,14 +204,14 @@ The platform is built across 12 sessions. Each session extends `support_agent.py
 | **1** | **The Blueprint** ✅ | Graph skeleton, `SupportState` schema, Gemini classifier, conditional router, 4 handler stubs, streaming, CLI test harness |
 | **2** | **The Hands** | Tool calling: `get_customer_details()` (CRM lookup) and `search_knowledge_base()` (KB search). `llm.bind_tools()`, `ToolNode`, `agent_node`, `respond_node`. Billing and technical stubs replaced with a full ReAct-capable agent. |
 | **3** | **The Loop** | ReAct (Reason + Act) pattern for the agent node. Loop counter + circuit breaker using `iteration_count` to prevent infinite tool-call loops. |
-| **4** | **The Memory** | Thread-level persistence with LangGraph's `SqliteSaver` checkpointer. Conversations survive process restarts. Thread selector in the Streamlit UI. |
+| **4** | **The Memory** | Thread-level persistence with LangGraph's `SqliteSaver` checkpointer. Conversations survive process restarts. Thread selector added to the frontend. |
 | **5** | **The Summarizer** | Automatic conversation compression. When `messages` exceeds a token threshold, a summarization node condenses history into `system_summary` and clears old messages. |
 | **6** | **The Shield** | Security layer: regex-based PII detection (emails, phone numbers, SSNs, card numbers), prompt injection detection, and a safety gate node that blocks unsafe inputs before classification. `pii_detected`, `injection_detected`, and `is_safe` fields activated. |
 | **7** | **The Specialist** | A dedicated specialist agent for complex technical tickets. Fine-tuned system prompt, extended tool set, and escalation logic when the general agent cannot resolve within the loop limit. |
 | **8** | **The Supervisor** | Supervisor agent that orchestrates multiple worker agents. Uses `next_worker` and `delegation_count` to decide which specialist handles a ticket. Dynamic routing beyond the original 4 categories. |
 | **9** | **The Swarm** | Parallel agent execution for fraud tickets. Multiple specialized fraud-detection agents run concurrently, write to `internal_notes`, and a merge node consolidates findings into a single fraud assessment. `fraud_handler` stub replaced. |
 | **10** | **The Writer** | GitHub integration. For unresolvable technical tickets, the agent drafts a GitHub issue and stores it in `github_draft` before requesting approval. |
-| **11** | **The Gatekeeper** | Human-in-the-loop approval gate using LangGraph's `interrupt`. The Streamlit UI shows the GitHub issue draft with Approve / Deny / Edit buttons. On approval, the issue is created and `github_issue_url` is populated. |
+| **11** | **The Gatekeeper** | Human-in-the-loop approval gate using LangGraph's `interrupt`. The frontend shows the GitHub issue draft with Approve / Deny / Edit buttons. On approval, the issue is created and `github_issue_url` is populated. |
 | **12** | **The Auditor** | Full audit trail. Every state transition is persisted. Time-travel controls in the UI let you inspect any historical checkpoint. Structured audit log exported per ticket. |
 
 ---
@@ -234,6 +223,5 @@ The platform is built across 12 sessions. Each session extends `support_agent.py
 | Agent framework | [LangGraph](https://github.com/langchain-ai/langgraph) |
 | LLM | Gemini 2.5 Flash via `langchain-google-genai` |
 | Backend API | FastAPI + Uvicorn |
-| Streamlit UI | Streamlit |
-| HTML frontend | Vanilla HTML/CSS/JS |
+| Frontend | Vanilla HTML/CSS/JS |
 | Environment | python-dotenv |
